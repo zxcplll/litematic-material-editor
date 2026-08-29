@@ -48,5 +48,7 @@ assert.equal(allLayerIds.filter(id => id === 'minecraft:stone_slab').length, 0);
 assert.equal(allLayerIds.filter(id => id === 'minecraft:dirt').length, 4);
 assert.equal(iconCandidates('minecraft:stone_pressure_plate')[0].endsWith('/stone.png'), true);
 assert.equal(iconCandidates('minecraft:white_bed')[0].endsWith('/white_wool.png'), true);
-assert.equal(iconCandidates('minecraft:redstone_wire')[0].endsWith('/redstone_dust_line0.png'), true);
+assert.equal(iconCandidates('minecraft:water')[0], 'assets/block-icons/water.png');
+assert.equal(iconCandidates('minecraft:lava')[0], 'assets/block-icons/lava.png');
+assert.equal(iconCandidates('minecraft:redstone_wire')[0], 'assets/block-icons/redstone_wire.png');
 console.log(`REPLACEMENT_RULES PASS catalog=${catalog.length} properties=preserved delete_scope=all+layer air_properties=none`);
