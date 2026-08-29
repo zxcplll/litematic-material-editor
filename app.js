@@ -302,6 +302,9 @@ function previewKind(id) {
   if (bare === 'chorus_plant') return 'chorus';
   if (bare === 'chiseled_bookshelf') return 'bookshelf';
   if (bare.endsWith('_shelf')) return 'shelf';
+  if (bare === 'fire' || bare === 'soul_fire') return 'fire';
+  if (bare.endsWith('_coral_wall_fan')) return 'wall_fan';
+  if (bare === 'leaf_litter' || bare === 'pink_petals' || bare === 'wildflowers') return 'ground_cover';
   if (bare === 'vine' || bare === 'glow_lichen' || bare === 'sculk_vein' || bare === 'resin_clump') return 'attached';
   if (bare === 'wall_torch' || bare === 'soul_wall_torch' || bare === 'redstone_wall_torch') return 'wall_torch';
   if (/(^|_)(rail|powered_rail|detector_rail|activator_rail)$/.test(bare)) return 'rail';
@@ -449,6 +452,26 @@ function drawPreviewShape(ctx, block, tile, toScreen) {
       const slotBox = bookshelfFacing ? { x0: .08, x1: .22, z0: u0, z1: u1, y0: v0, y1: v1 } : { x0: u0, x1: u1, z0: .08, z1: .22, y0: v0, y1: v1 };
       drawPreviewCuboid(ctx, block, tile, toScreen, slotBox, '#7d4a2f', .95);
     }
+    return;
+  }
+  if (kind === 'ground_cover') {
+    const amount = clamp(Number(previewProperty(block, 'segment_amount', previewProperty(block, 'flower_amount', '1'))) || 1, 1, 4);
+    const facingCover = facing === 'east' || facing === 'west'; const width = .16 + amount * .16;
+    const box = facingCover ? { x0: .1, x1: .9, z0: .1, z1: .1 + width, y0: .02, y1: .08 + amount * .015 } : { x0: .1, x1: .1 + width, z0: .1, z1: .9, y0: .02, y1: .08 + amount * .015 };
+    drawPreviewCuboid(ctx, block, tile, toScreen, box, color, .92); return;
+  }
+  if (kind === 'wall_fan') {
+    const fan = facing === 'north' ? { x0: .08, x1: .92, z0: 0, z1: .08 } : facing === 'south' ? { x0: .08, x1: .92, z0: .92, z1: 1 } : facing === 'west' ? { x0: 0, x1: .08, z0: .08, z1: .92 } : { x0: .92, x1: 1, z0: .08, z1: .92 };
+    drawPreviewCuboid(ctx, block, tile, toScreen, { ...fan, y0: .2, y1: .82 }, color, .82); return;
+  }
+  if (kind === 'fire') {
+    const attached = block.properties || {}; const sides = Object.keys(PREVIEW_HORIZONTAL_DIRECTIONS).filter((direction) => attached[direction] === 'true');
+    const fireColor = block.id.endsWith('soul_fire') ? '#52d3d0' : '#f27b22';
+    if (attached.up === 'true') drawPreviewCuboid(ctx, block, tile, toScreen, { y0: .55, y1: 1 }, fireColor, .55);
+    const a = [previewPoint(block, tile, toScreen, .12, .08, .12), previewPoint(block, tile, toScreen, .88, .92, .88), previewPoint(block, tile, toScreen, .88, .08, .88), previewPoint(block, tile, toScreen, .12, .92, .12)];
+    const b = [previewPoint(block, tile, toScreen, .88, .08, .12), previewPoint(block, tile, toScreen, .12, .92, .88), previewPoint(block, tile, toScreen, .12, .08, .88), previewPoint(block, tile, toScreen, .88, .92, .12)];
+    if (!sides.length || attached.down !== 'false') { drawPreviewPolygon(ctx, [a[0], a[1], a[3]], fireColor, 'rgba(255,190,60,.35)'); drawPreviewPolygon(ctx, [b[0], b[1], b[3]], fireColor, 'rgba(255,190,60,.35)'); }
+    for (const direction of sides) { const edge = direction === 'north' ? { x0: .08, x1: .92, z0: 0, z1: .05 } : direction === 'south' ? { x0: .08, x1: .92, z0: .95, z1: 1 } : direction === 'west' ? { x0: 0, x1: .05, z0: .08, z1: .92 } : { x0: .95, x1: 1, z0: .08, z1: .92 }; drawPreviewCuboid(ctx, block, tile, toScreen, { ...edge, y0: .12, y1: .8 }, fireColor, .6); }
     return;
   }
   if (kind === 'tripwire') {
