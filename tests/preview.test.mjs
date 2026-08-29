@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { fallbackColor, makeSample, previewAttachmentFlags, previewConnectionFlags, previewKind, previewProjectPoint, unpackStates } from '../app.js';
+import { fallbackColor, makeSample, PREVIEW_ZOOM_MAX, PREVIEW_ZOOM_MIN, previewAttachmentFlags, previewConnectionFlags, previewKind, previewProjectPoint, unpackStates } from '../app.js';
 import { BLOCKSTATE_IDS } from '../blocks-26.2.js';
 import { BLOCK_COLORS_26_2 } from '../block-colors-26.2.js';
 
@@ -9,6 +9,9 @@ assert.deepEqual(Object.keys(base).sort(), ['depth', 'x', 'y']);
 assert.ok(Number.isFinite(base.x) && Number.isFinite(base.y) && Number.isFinite(base.depth));
 assert.notEqual(base.x, rotated.x, 'yaw must change horizontal projection');
 assert.notEqual(base.depth, rotated.depth, 'yaw must change depth ordering');
+assert.equal(PREVIEW_ZOOM_MIN, 0.2);
+assert.equal(PREVIEW_ZOOM_MAX, 12);
+assert.ok(PREVIEW_ZOOM_MAX > 4, 'large blueprints need a higher preview zoom ceiling');
 assert.equal(previewKind('minecraft:stone_slab'), 'slab');
 assert.equal(previewKind('minecraft:oak_stairs'), 'stairs');
 assert.equal(previewKind('minecraft:redstone_wire'), 'redstone');
