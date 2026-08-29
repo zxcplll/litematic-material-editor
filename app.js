@@ -19,6 +19,7 @@ function buildCatalog() {
 }
 const SHAPE_NAMES = { full: '普通方块', slab: '半砖', stairs: '台阶', trapdoor: '活板门', door: '门', fence: '栅栏', wall: '墙', pane: '玻璃板', button: '按钮', pressure_plate: '压力板', sign: '告示牌', carpet: '地毯', rail: '铁轨', plant: '植物', fluid: '流体', other: '特殊方块' };
 const SHAPE_DEFAULTS = { full: 'minecraft:stone', slab: 'minecraft:stone_slab', stairs: 'minecraft:stone_stairs', trapdoor: 'minecraft:oak_trapdoor', door: 'minecraft:oak_door', fence: 'minecraft:oak_fence', wall: 'minecraft:cobblestone_wall', pane: 'minecraft:glass_pane', button: 'minecraft:stone_button', pressure_plate: 'minecraft:stone_pressure_plate', sign: 'minecraft:oak_sign', carpet: 'minecraft:white_carpet', rail: 'minecraft:rail', plant: 'minecraft:grass', fluid: 'minecraft:water' };
+const LOCAL_BLOCK_ICONS = { water: 'assets/block-icons/water.png', lava: 'assets/block-icons/lava.png', redstone_wire: 'assets/block-icons/redstone_wire.png' };
 const ICON_ALIASES = { water: 'water_still', lava: 'lava_still', fire: 'fire_0', soul_fire: 'soul_fire_0', stone_brick_wall: 'stone_bricks', stone_brick_stairs: 'stone_bricks', stone_pressure_plate: 'stone', mossy_stone_brick_wall: 'mossy_stone_bricks', cobblestone_wall: 'cobblestone', deepslate_brick_wall: 'deepslate_bricks', deepslate_tile_wall: 'deepslate_tiles', grass_block: 'grass_block_top', redstone_wire: 'redstone_dust_line0', oak_wall_sign: 'oak_planks' };
 const isAirId = (id) => /^(minecraft:)?(air|cave_air|void_air)$/.test(id);
 function blockShape(id) {
@@ -30,7 +31,7 @@ function blockShape(id) {
   if (bare.endsWith('_door')) return 'door';
   if (bare.endsWith('_fence_gate') || bare.endsWith('_fence')) return 'fence';
   if (bare.endsWith('_wall')) return 'wall';
-  if (bare.endsWith('_pane') || bare === 'iron_bars') return 'pane';
+  if (bare.endsWith('_pane') || bare.endsWith('_bars') || bare === 'iron_bars') return 'pane';
   if (bare.endsWith('_button')) return 'button';
   if (bare.endsWith('_pressure_plate')) return 'pressure_plate';
   if (bare.endsWith('_hanging_sign') || bare.endsWith('_sign')) return 'sign';
@@ -57,7 +58,8 @@ function iconCandidates(id) {
   if (bare.endsWith('_stairs')) candidates.push(bare.replace(/_stairs$/, ''));
   if (bare.endsWith('_slab')) candidates.push(bare.replace(/_slab$/, ''));
   candidates.push(bare);
-  return [...new Set(candidates.filter(Boolean))].map(path => `${iconBase}${path}.png`);
+  const remote = [...new Set(candidates.filter(Boolean))].map(path => `${iconBase}${path}.png`);
+  return LOCAL_BLOCK_ICONS[bare] ? [LOCAL_BLOCK_ICONS[bare], ...remote] : remote;
 }
 function fallbackColor(id) {
   const bare = id.replace(/^minecraft:/, '');
@@ -214,7 +216,7 @@ const PREVIEW_MAX_BLOCKS = 12000;
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 function previewScopeLabel() { return state.scope === 'all' ? '全部层' : `第 ${Number(state.scope) + 1} 层`; }
 function collectPreviewBlocks() {
-  const blocks = []; let total = 0;
+  const blocks = []; const allBlocks = []; let total = 0;
   const requestedLayer = state.scope === 'all' ? null : Number(state.scope);
   for (const region of allRegions()) {
     const data = unpackStates(region); const position = region.value.Position?.value || {};
@@ -223,7 +225,11 @@ function collectPreviewBlocks() {
     for (let index = 0; index < data.values.length; index += 1) {
       const paletteIndex = data.values[index]; const id = blockId(data.palette[paletteIndex]);
       const layer = Math.floor(index / (data.dimensions.x * data.dimensions.z));
-      if (!isAirId(id) && (requestedLayer === null || layer === requestedLayer)) eligible += 1;
+      if (isAirId(id)) continue;
+      const y = layer; const row = index % (data.dimensions.x * data.dimensions.z);
+      const block = { x: ox + (row % data.dimensions.x), y: oy + y, z: oz + Math.floor(row / data.dimensions.x), id, properties: previewProperties(data.palette[paletteIndex]) };
+      allBlocks.push(block);
+      if (requestedLayer === null || layer === requestedLayer) eligible += 1;
     }
     total += eligible;
     const stride = Math.max(1, Math.ceil(eligible / PREVIEW_MAX_BLOCKS)); let ordinal = 0;
@@ -238,6 +244,13 @@ function collectPreviewBlocks() {
       ordinal += 1;
     }
   }
+  const occupancy = new Map(allBlocks.map((block) => [`${block.x},${block.y},${block.z}`, block]));
+  for (const block of blocks) {
+    const neighbors = {};
+    for (const [direction, [dx, dy, dz]] of Object.entries(PREVIEW_DIRECTIONS)) neighbors[direction] = occupancy.get(`${block.x + dx},${block.y + dy},${block.z + dz}`);
+    block.connections = previewConnectionFlags(block, neighbors);
+    block.attachments = previewAttachmentFlags(block, neighbors);
+  }
   return { blocks, total, sampled: blocks.length < total };
 }
 function previewProjectPoint(point, tile, yaw = previewState.yaw, pitch = previewState.pitch) {
@@ -247,9 +260,50 @@ function previewProjectPoint(point, tile, yaw = previewState.yaw, pitch = previe
 }
 function previewProperties(entry) { return Object.fromEntries(Object.entries(entry?.Properties?.value || {}).map(([key, value]) => [key, value?.value ?? ''])); }
 function previewProperty(block, key, fallback = '') { return block.properties?.[key] ?? fallback; }
+const PREVIEW_HORIZONTAL_DIRECTIONS = { north: [0, 0, -1], east: [1, 0, 0], south: [0, 0, 1], west: [-1, 0, 0] };
+const PREVIEW_DIRECTIONS = { ...PREVIEW_HORIZONTAL_DIRECTIONS, up: [0, 1, 0], down: [0, -1, 0] };
+function previewConnectableKind(kind) { return ['full', 'slab', 'stairs', 'trapdoor', 'door', 'fence', 'wall', 'pane'].includes(kind); }
+function previewCanConnect(block, neighbor) {
+  if (!neighbor) return false;
+  const kind = previewKind(block.id);
+  if (kind === 'tripwire') return ['tripwire', 'hook'].includes(previewKind(neighbor.id));
+  if (!previewConnectableKind(previewKind(neighbor.id))) return false;
+  if (kind === 'pane') return ['full', 'slab', 'stairs', 'trapdoor', 'door', 'fence', 'wall', 'pane'].includes(previewKind(neighbor.id));
+  if (kind === 'fence') return ['full', 'fence', 'wall', 'pane'].includes(previewKind(neighbor.id));
+  if (kind === 'wall') return ['full', 'fence', 'wall', 'pane'].includes(previewKind(neighbor.id));
+  return false;
+}
+function previewConnectionFlags(block, neighbors = {}) {
+  const kind = previewKind(block.id); const flags = {};
+  for (const direction of Object.keys(PREVIEW_HORIZONTAL_DIRECTIONS)) {
+    const stateValue = block.properties?.[direction];
+    if (stateValue !== undefined) {
+      flags[direction] = stateValue === 'true' || stateValue === 'low' || stateValue === 'tall';
+    } else if (kind === 'pane' || kind === 'fence' || kind === 'wall' || kind === 'tripwire') {
+      flags[direction] = previewCanConnect(block, neighbors[direction]);
+    } else flags[direction] = false;
+  }
+  return flags;
+}
+function previewAttachmentFlags(block, neighbors = {}) {
+  const flags = {};
+  const kind = previewKind(block.id);
+  for (const direction of Object.keys(PREVIEW_DIRECTIONS)) {
+    if (block.properties?.[direction] !== undefined) flags[direction] = block.properties[direction] === 'true';
+    else flags[direction] = kind === 'chorus' && previewKind(neighbors[direction]?.id || '') === 'chorus';
+  }
+  return flags;
+}
 function previewKind(id) {
   const bare = id.replace(/^minecraft:/, '');
   if (bare === 'redstone_wire') return 'redstone';
+  if (bare === 'tripwire') return 'tripwire';
+  if (bare === 'tripwire_hook') return 'hook';
+  if (bare === 'chorus_plant') return 'chorus';
+  if (bare === 'chiseled_bookshelf') return 'bookshelf';
+  if (bare.endsWith('_shelf')) return 'shelf';
+  if (bare === 'vine' || bare === 'glow_lichen' || bare === 'sculk_vein' || bare === 'resin_clump') return 'attached';
+  if (bare === 'wall_torch' || bare === 'soul_wall_torch' || bare === 'redstone_wall_torch') return 'wall_torch';
   if (/(^|_)(rail|powered_rail|detector_rail|activator_rail)$/.test(bare)) return 'rail';
   if (bare.endsWith('_slab')) return 'slab';
   if (bare.endsWith('_stairs')) return 'stairs';
@@ -257,7 +311,7 @@ function previewKind(id) {
   if (bare.endsWith('_door')) return 'door';
   if (bare.endsWith('_fence_gate') || bare.endsWith('_fence')) return 'fence';
   if (bare.endsWith('_wall')) return 'wall';
-  if (bare.endsWith('_pane') || bare === 'iron_bars') return 'pane';
+  if (bare.endsWith('_pane') || bare.endsWith('_bars') || bare === 'iron_bars') return 'pane';
   if (bare.endsWith('_pressure_plate')) return 'pressure';
   if (bare.endsWith('_button')) return 'button';
   if (bare.endsWith('_carpet') || bare === 'moss_carpet') return 'carpet';
@@ -304,7 +358,11 @@ function previewPoint(block, tile, toScreen, localX, localY, localZ) { return to
 function drawPreviewShape(ctx, block, tile, toScreen) {
   const color = fallbackColor(block.id); const kind = previewKind(block.id); const facing = previewProperty(block, 'facing', 'south'); const topHalf = previewProperty(block, 'half', previewProperty(block, 'type', 'bottom')) === 'top';
   if (kind === 'slab') { drawPreviewCuboid(ctx, block, tile, toScreen, { y0: topHalf ? .5 : 0, y1: topHalf ? 1 : .5 }, color); return; }
-  if (kind === 'carpet' || kind === 'pressure') { drawPreviewCuboid(ctx, block, tile, toScreen, { y0: .02, y1: kind === 'carpet' ? .1 : .16 }, color); return; }
+  if (kind === 'carpet' || kind === 'pressure') {
+    drawPreviewCuboid(ctx, block, tile, toScreen, { y0: .02, y1: kind === 'carpet' ? .1 : .16 }, color);
+    if (block.id.endsWith('pale_moss_carpet')) for (const direction of Object.keys(PREVIEW_HORIZONTAL_DIRECTIONS)) { const height = previewProperty(block, direction, 'none'); if (height !== 'none' && height !== 'false') { const tall = height === 'tall'; const edge = direction === 'north' ? { x0: 0, x1: 1, z0: 0, z1: .12 } : direction === 'south' ? { x0: 0, x1: 1, z0: .88, z1: 1 } : direction === 'west' ? { x0: 0, x1: .12, z0: 0, z1: 1 } : { x0: .88, x1: 1, z0: 0, z1: 1 }; drawPreviewCuboid(ctx, block, tile, toScreen, { ...edge, y0: .02, y1: tall ? .35 : .2 }, color); } }
+    return;
+  }
   if (kind === 'stairs') {
     const baseY = topHalf ? .5 : 0; const stepY = topHalf ? 0 : .5; let step = { x0: 0, x1: 1, z0: 0, z1: .5 };
     if (facing === 'north') step = { x0: 0, x1: 1, z0: .5, z1: 1 }; else if (facing === 'east') step = { x0: 0, x1: .5, z0: 0, z1: 1 }; else if (facing === 'west') step = { x0: .5, x1: 1, z0: 0, z1: 1 };
@@ -317,10 +375,100 @@ function drawPreviewShape(ctx, block, tile, toScreen) {
     drawPreviewCuboid(ctx, block, tile, toScreen, { ...vertical, y0: 0, y1: 1 }, color); return;
   }
   if (kind === 'door') { const panel = facing === 'east' || facing === 'west' ? { z0: .42, z1: .58 } : { x0: .42, x1: .58 }; drawPreviewCuboid(ctx, block, tile, toScreen, { ...panel, y0: 0, y1: 1 }, color); return; }
-  if (kind === 'fence') { drawPreviewCuboid(ctx, block, tile, toScreen, { x0: .36, x1: .64, z0: .36, z1: .64, y0: 0, y1: .95 }, color); drawPreviewCuboid(ctx, block, tile, toScreen, { x0: 0, x1: 1, z0: .43, z1: .57, y0: .32, y1: .72 }, color); drawPreviewCuboid(ctx, block, tile, toScreen, { x0: .43, x1: .57, z0: 0, z1: 1, y0: .32, y1: .72 }, color); return; }
-  if (kind === 'wall') { drawPreviewCuboid(ctx, block, tile, toScreen, { x0: .25, x1: .75, z0: .25, z1: .75, y0: 0, y1: .9 }, color); drawPreviewCuboid(ctx, block, tile, toScreen, { x0: 0, x1: 1, z0: .38, z1: .62, y0: .1, y1: .7 }, color); drawPreviewCuboid(ctx, block, tile, toScreen, { x0: .38, x1: .62, z0: 0, z1: 1, y0: .1, y1: .7 }, color); return; }
-  if (kind === 'pane') { drawPreviewCuboid(ctx, block, tile, toScreen, { x0: .43, x1: .57, z0: 0, z1: 1, y0: 0, y1: 1 }, color, .7); drawPreviewCuboid(ctx, block, tile, toScreen, { x0: 0, x1: 1, z0: .43, z1: .57, y0: 0, y1: 1 }, color, .7); return; }
+  const connections = block.connections || previewConnectionFlags(block);
+  if (kind === 'fence') {
+    drawPreviewCuboid(ctx, block, tile, toScreen, { x0: .36, x1: .64, z0: .36, z1: .64, y0: 0, y1: .95 }, color);
+    if (connections.north) drawPreviewCuboid(ctx, block, tile, toScreen, { x0: .43, x1: .57, z0: 0, z1: .5, y0: .32, y1: .72 }, color);
+    if (connections.south) drawPreviewCuboid(ctx, block, tile, toScreen, { x0: .43, x1: .57, z0: .5, z1: 1, y0: .32, y1: .72 }, color);
+    if (connections.west) drawPreviewCuboid(ctx, block, tile, toScreen, { x0: 0, x1: .5, z0: .43, z1: .57, y0: .32, y1: .72 }, color);
+    if (connections.east) drawPreviewCuboid(ctx, block, tile, toScreen, { x0: .5, x1: 1, z0: .43, z1: .57, y0: .32, y1: .72 }, color);
+    return;
+  }
+  if (kind === 'wall') {
+    const tall = Object.values(connections).some(Boolean);
+    const hasWallState = Object.hasOwn(block.properties || {}, 'up') || Object.keys(PREVIEW_HORIZONTAL_DIRECTIONS).some((direction) => Object.hasOwn(block.properties || {}, direction));
+    if (!hasWallState || previewProperty(block, 'up', 'true') === 'true' || tall) drawPreviewCuboid(ctx, block, tile, toScreen, { x0: .25, x1: .75, z0: .25, z1: .75, y0: 0, y1: tall ? .9 : .75 }, color);
+    if (connections.north) drawPreviewCuboid(ctx, block, tile, toScreen, { x0: .38, x1: .62, z0: 0, z1: .5, y0: .1, y1: .7 }, color);
+    if (connections.south) drawPreviewCuboid(ctx, block, tile, toScreen, { x0: .38, x1: .62, z0: .5, z1: 1, y0: .1, y1: .7 }, color);
+    if (connections.west) drawPreviewCuboid(ctx, block, tile, toScreen, { x0: 0, x1: .5, z0: .38, z1: .62, y0: .1, y1: .7 }, color);
+    if (connections.east) drawPreviewCuboid(ctx, block, tile, toScreen, { x0: .5, x1: 1, z0: .38, z1: .62, y0: .1, y1: .7 }, color);
+    return;
+  }
+  if (kind === 'pane') {
+    // The vanilla post/noside models form a centered cross. Only true
+    // connection states add a side segment reaching the block boundary.
+    drawPreviewCuboid(ctx, block, tile, toScreen, { x0: .43, x1: .57, z0: .28, z1: .72, y0: 0, y1: 1 }, color, .7);
+    drawPreviewCuboid(ctx, block, tile, toScreen, { x0: .28, x1: .72, z0: .43, z1: .57, y0: 0, y1: 1 }, color, .7);
+    if (connections.north) drawPreviewCuboid(ctx, block, tile, toScreen, { x0: .43, x1: .57, z0: 0, z1: .5, y0: 0, y1: 1 }, color, .7);
+    if (connections.south) drawPreviewCuboid(ctx, block, tile, toScreen, { x0: .43, x1: .57, z0: .5, z1: 1, y0: 0, y1: 1 }, color, .7);
+    if (connections.west) drawPreviewCuboid(ctx, block, tile, toScreen, { x0: 0, x1: .5, z0: .43, z1: .57, y0: 0, y1: 1 }, color, .7);
+    if (connections.east) drawPreviewCuboid(ctx, block, tile, toScreen, { x0: .5, x1: 1, z0: .43, z1: .57, y0: 0, y1: 1 }, color, .7);
+    return;
+  }
+  if (kind === 'chorus') {
+    const attached = block.attachments || previewAttachmentFlags(block); const branchColor = color;
+    // A chorus plant is a narrow core with one branch for each connected face.
+    drawPreviewCuboid(ctx, block, tile, toScreen, { x0: .34, x1: .66, z0: .34, z1: .66, y0: .12, y1: .88 }, branchColor, .9);
+    const branches = {
+      north: { x0: .34, x1: .66, z0: 0, z1: .5, y0: .34, y1: .66 },
+      south: { x0: .34, x1: .66, z0: .5, z1: 1, y0: .34, y1: .66 },
+      west: { x0: 0, x1: .5, z0: .34, z1: .66, y0: .34, y1: .66 },
+      east: { x0: .5, x1: 1, z0: .34, z1: .66, y0: .34, y1: .66 },
+      up: { x0: .34, x1: .66, z0: .34, z1: .66, y0: .5, y1: 1 },
+      down: { x0: .34, x1: .66, z0: .34, z1: .66, y0: 0, y1: .5 }
+    };
+    for (const [direction, enabled] of Object.entries(attached)) if (enabled) drawPreviewCuboid(ctx, block, tile, toScreen, branches[direction], branchColor, .9);
+    return;
+  }
+  if (kind === 'shelf') {
+    const shelfFacing = facing === 'east' || facing === 'west';
+    const board = shelfFacing ? { z0: .08, z1: .92, y0: .18, y1: .82 } : { x0: .08, x1: .92, y0: .18, y1: .82 };
+    drawPreviewCuboid(ctx, block, tile, toScreen, board, color, .9);
+    const chain = previewProperty(block, 'side_chain', 'unconnected');
+    const left = chain === 'left' || chain === 'center'; const right = chain === 'right' || chain === 'center';
+    const depth = shelfFacing ? { x0: .08, x1: .92, z0: .08, z1: .2 } : { x0: .08, x1: .2, z0: .08, z1: .92 };
+    if (chain === 'unconnected') drawPreviewCuboid(ctx, block, tile, toScreen, depth, color, .9);
+    if (left) {
+      const segment = shelfFacing ? { x0: 0, x1: .5, z0: .08, z1: .2 } : { x0: .08, x1: .2, z0: 0, z1: .5 };
+      drawPreviewCuboid(ctx, block, tile, toScreen, segment, color, .9);
+    }
+    if (right) {
+      const segment = shelfFacing ? { x0: .5, x1: 1, z0: .08, z1: .2 } : { x0: .08, x1: .2, z0: .5, z1: 1 };
+      drawPreviewCuboid(ctx, block, tile, toScreen, segment, color, .9);
+    }
+    return;
+  }
+  if (kind === 'bookshelf') {
+    drawPreviewCuboid(ctx, block, tile, toScreen, { y0: 0, y1: 1 }, color);
+    const bookshelfFacing = facing === 'east' || facing === 'west';
+    for (let slot = 0; slot < 6; slot += 1) {
+      if (previewProperty(block, `slot_${slot}_occupied`, 'false') !== 'true') continue;
+      const column = slot % 3; const row = slot < 3 ? 0 : 1; const inset = .06; const gap = .04;
+      const u0 = inset + column * ((1 - inset * 2) / 3) + gap; const u1 = inset + (column + 1) * ((1 - inset * 2) / 3) - gap;
+      const v0 = row === 0 ? .55 : .08; const v1 = row === 0 ? .92 : .45;
+      const slotBox = bookshelfFacing ? { x0: .08, x1: .22, z0: u0, z1: u1, y0: v0, y1: v1 } : { x0: u0, x1: u1, z0: .08, z1: .22, y0: v0, y1: v1 };
+      drawPreviewCuboid(ctx, block, tile, toScreen, slotBox, '#7d4a2f', .95);
+    }
+    return;
+  }
+  if (kind === 'tripwire') {
+    const wireColor = block.properties?.attached === 'true' ? '#d8d0b8' : '#bdb7a9'; const height = block.properties?.attached === 'true' ? .13 : .08; const center = previewPoint(block, tile, toScreen, .5, height, .5);
+    for (const [direction, connected] of Object.entries(connections)) if (connected) { const end = direction === 'north' ? previewPoint(block, tile, toScreen, .5, height, 0) : direction === 'south' ? previewPoint(block, tile, toScreen, .5, height, 1) : direction === 'west' ? previewPoint(block, tile, toScreen, 0, height, .5) : previewPoint(block, tile, toScreen, 1, height, .5); drawPreviewLine(ctx, [center, end], wireColor, Math.max(1, tile * .035)); }
+    if (!Object.values(connections).some(Boolean)) { drawPreviewLine(ctx, [previewPoint(block, tile, toScreen, .18, height, .5), previewPoint(block, tile, toScreen, .82, height, .5)], wireColor, Math.max(1, tile * .03)); drawPreviewLine(ctx, [previewPoint(block, tile, toScreen, .5, height, .18), previewPoint(block, tile, toScreen, .5, height, .82)], wireColor, Math.max(1, tile * .03)); }
+    return;
+  }
+  if (kind === 'attached') {
+    const attached = block.attachments || previewAttachmentFlags(block); const faces = { north: { x0: 0, x1: 1, z0: 0, z1: .045 }, south: { x0: 0, x1: 1, z0: .955, z1: 1 }, west: { x0: 0, x1: .045, z0: 0, z1: 1 }, east: { x0: .955, x1: 1, z0: 0, z1: 1 }, up: { x0: 0, x1: 1, z0: 0, z1: 1, y0: .955, y1: 1 }, down: { x0: 0, x1: 1, z0: 0, z1: 1, y0: 0, y1: .045 } };
+    for (const [direction, enabled] of Object.entries(attached)) if (enabled) drawPreviewCuboid(ctx, block, tile, toScreen, faces[direction], color, .78);
+    if (!Object.values(attached).some(Boolean)) drawPreviewPolygon(ctx, [previewPoint(block, tile, toScreen, .15, .05, .15), previewPoint(block, tile, toScreen, .85, .05, .85), previewPoint(block, tile, toScreen, .85, .85, .85), previewPoint(block, tile, toScreen, .15, .85, .15)], color, 'rgba(30,70,40,.45)');
+    return;
+  }
+  if (kind === 'wall_torch') {
+    const mount = facing === 'north' ? { x0: .38, x1: .62, z0: 0, z1: .2 } : facing === 'south' ? { x0: .38, x1: .62, z0: .8, z1: 1 } : facing === 'west' ? { x0: 0, x1: .2, z0: .38, z1: .62 } : { x0: .8, x1: 1, z0: .38, z1: .62 };
+    drawPreviewCuboid(ctx, block, tile, toScreen, { ...mount, y0: .3, y1: .5 }, color, .9); drawPreviewCuboid(ctx, block, tile, toScreen, { x0: .4, x1: .6, z0: .4, z1: .6, y0: .42, y1: .85 }, color); return;
+  }
   if (kind === 'button') { const panel = facing === 'east' ? { x0: .82, x1: 1 } : facing === 'west' ? { x0: 0, x1: .18 } : facing === 'north' ? { z0: 0, z1: .18 } : { z0: .82, z1: 1 }; drawPreviewCuboid(ctx, block, tile, toScreen, { ...panel, y0: .38, y1: .62 }, color); return; }
+  if (kind === 'hook') { const panel = facing === 'east' ? { x0: .82, x1: 1 } : facing === 'west' ? { x0: 0, x1: .18 } : facing === 'north' ? { z0: 0, z1: .18 } : { z0: .82, z1: 1 }; drawPreviewCuboid(ctx, block, tile, toScreen, { ...panel, y0: .38, y1: .62 }, color); const hooked = previewProperty(block, 'attached', 'false') === 'true'; drawPreviewCuboid(ctx, block, tile, toScreen, { x0: .44, x1: .56, z0: .44, z1: .56, y0: .5, y1: hooked ? .74 : .66 }, color); return; }
   if (kind === 'redstone') {
     const power = clamp(Number(previewProperty(block, 'power', '0')) || 0, 0, 15); const red = `rgb(${Math.round(82 + power * 11.5)}, ${Math.round(8 + power * 1.8)}, ${Math.round(5 + power * .5)})`; drawPreviewCuboid(ctx, block, tile, toScreen, { x0: .35, x1: .65, z0: .35, z1: .65, y0: .01, y1: .045 }, red);
     const arms = [['north', 0, .5, .5, .12], ['south', 0, .5, .5, .88], ['west', .12, .5, 0, .5], ['east', .88, .5, 0, .5]]; for (const [name, x0, y, z0, end] of arms) { const value = previewProperty(block, name, 'side'); if (value !== 'none') { const start = previewPoint(block, tile, toScreen, .5, .05, .5); const finish = name === 'north' || name === 'south' ? previewPoint(block, tile, toScreen, .5, .05, end) : previewPoint(block, tile, toScreen, end, .05, .5); drawPreviewLine(ctx, [start, finish], red, Math.max(1.4, tile * .055)); } } return;
@@ -437,4 +585,4 @@ if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded
   const previewCanvas = $('preview-canvas'); previewCanvas.addEventListener('contextmenu', (event) => event.preventDefault()); previewCanvas.addEventListener('pointerdown', (event) => { event.preventDefault(); previewCanvas.setPointerCapture(event.pointerId); previewState.drag = { mode: event.button === 2 ? 'rotate' : 'pan', x: event.clientX, y: event.clientY }; previewCanvas.classList.add('dragging'); }); previewCanvas.addEventListener('pointermove', (event) => { if (!previewState.drag) return; const dx = event.clientX - previewState.drag.x; const dy = event.clientY - previewState.drag.y; previewState.drag.x = event.clientX; previewState.drag.y = event.clientY; if (previewState.drag.mode === 'rotate') { previewState.yaw += dx * 0.012; previewState.pitch = clamp(previewState.pitch + dy * 0.008, 0.25, 1.25); } else { previewState.panX += dx; previewState.panY += dy; } renderPreview(); }); const endPreviewDrag = (event) => { if (previewState.drag) { previewState.drag = null; previewCanvas.classList.remove('dragging'); if (previewCanvas.hasPointerCapture(event.pointerId)) previewCanvas.releasePointerCapture(event.pointerId); } }; previewCanvas.addEventListener('pointerup', endPreviewDrag); previewCanvas.addEventListener('pointercancel', endPreviewDrag); previewCanvas.addEventListener('wheel', (event) => { event.preventDefault(); previewState.zoom = clamp(previewState.zoom * Math.exp(-event.deltaY * 0.001), 0.35, 4); renderPreview(); }, { passive: false }); $('preview-reset').addEventListener('click', resetPreviewView); window.addEventListener('resize', renderPreview); render();
 });
 
-export { blockShape, buildCatalog, collectPreviewBlocks, countRegion, ensurePaletteEntry, fallbackColor, iconCandidates, makeSample, packStates, previewKind, previewProjectPoint, replaceRegionBlocks, unpackStates };
+export { blockShape, buildCatalog, collectPreviewBlocks, countRegion, ensurePaletteEntry, fallbackColor, iconCandidates, makeSample, packStates, previewAttachmentFlags, previewConnectionFlags, previewKind, previewProjectPoint, replaceRegionBlocks, unpackStates };

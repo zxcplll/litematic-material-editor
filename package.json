@@ -1,12 +1,12 @@
 {
   "name": "litematic-editor",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Litematic 建材编辑器",
   "private": true,
   "main": "main.cjs",
   "type": "module",
   "scripts": {
-    "test": "node tests/nbt.test.mjs && node tests/replacement-rules.test.mjs && node tests/preview.test.mjs",
+    "test": "node tests/nbt.test.mjs && node tests/replacement-rules.test.mjs && node tests/icons.test.mjs && node tests/preview.test.mjs",
     "desktop": "electron .",
     "dist": "electron-builder --win nsis portable"
   },
