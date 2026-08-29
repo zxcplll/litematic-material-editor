@@ -1,0 +1,61 @@
+{
+  "name": "litematic-editor",
+  "version": "1.0.0",
+  "description": "Litematic 建材编辑器",
+  "private": true,
+  "main": "main.cjs",
+  "type": "module",
+  "scripts": {
+    "test": "node tests/nbt.test.mjs && node tests/replacement-rules.test.mjs && node tests/preview.test.mjs",
+    "desktop": "electron .",
+    "dist": "electron-builder --win nsis portable"
+  },
+  "build": {
+    "appId": "com.mcff14.litematic-editor",
+    "productName": "Litematic 建材编辑器",
+    "asar": true,
+    "files": [
+      "index.html",
+      "styles.css",
+      "app.js",
+      "nbt.js",
+      "blocks-26.2.js",
+      "block-names-26.2.js",
+      "main.cjs",
+      "preload.cjs",
+      "assets/**/*",
+      "package.json"
+    ],
+    "win": {
+      "icon": "assets/app-icon.ico",
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ]
+    },
+    "nsis": {
+      "artifactName": "Litematic-建材编辑器-${version}-setup.exe",
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Litematic 建材编辑器",
+      "runAfterFinish": true
+    },
+    "portable": {
+      "artifactName": "Litematic-建材编辑器-${version}-portable.exe"
+    },
+    "fileAssociations": [{
+      "ext": "litematic",
+      "name": "Litematic 蓝图",
+      "description": "Minecraft Litematic 建筑蓝图",
+      "role": "Editor",
+    "icon": "assets/app-icon.ico"
+    }]
+  },
+  "devDependencies": {
+    "electron": "^38.0.0",
+    "electron-builder": "^26.0.0"
+  }
+}

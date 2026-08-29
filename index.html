@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Litematic 建材编辑器</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">L</span><div><strong>Litematic 建材编辑器</strong><span>26.2 方块目录 · 浏览器本地处理</span></div></div>
+    <div class="top-actions"><button class="text-button" id="load-demo">载入示例</button><button class="primary-button" id="export-button"><span class="button-icon">↓</span>导出 .litematic</button></div>
+  </header>
+  <main class="workspace">
+    <aside class="sidebar">
+      <section class="file-panel" id="dropzone"><div class="upload-icon">↑</div><h2>打开蓝图文件</h2><p>拖入 .litematic，或从设备选择</p><button class="outline-button" id="import-button">选择文件</button><input type="file" id="file-input" accept=".litematic,application/octet-stream" hidden><div class="file-status"><span class="status-dot"></span><span id="file-label">未加载文件</span></div></section>
+      <section class="sidebar-section"><div class="section-label">蓝图信息</div><div class="project-title" id="project-name">未加载蓝图</div><div class="stat-list"><div><span>区域</span><strong id="region-count">0</strong></div><div><span>方块总数</span><strong id="total-blocks">0</strong></div><div><span>总体积</span><strong id="total-volume">0</strong></div><div><span>材料种类</span><strong id="palette-size">0</strong></div></div></section>
+      <section class="sidebar-section"><div class="section-label">按层查看</div><select id="layer-select" class="layer-select"><option value="all">全部层</option></select><div class="layer-summary" id="layer-summary"></div></section>
+      <div class="sidebar-foot">文件不会上传服务器<br>支持原始 NBT 结构保留</div>
+    </aside>
+    <section class="content">
+      <div class="content-head"><div><div class="eyebrow">MATERIAL INVENTORY</div><h1>建材清单</h1><p>查看每种方块的中文名称与所需数量，选择范围后可统一替换。</p></div><div class="scope-badge"><span class="status-dot"></span>编辑模式</div></div>
+      <div class="replace-bar"><div class="replace-title"><span class="replace-glyph">⇄</span><div><strong>统一替换</strong><span>当前范围：<b id="source-label">选择表格中的材料</b></span><em id="shape-rule">默认仅匹配：相同形状</em></div></div><div class="replace-flow"><div class="material-picker source-picker"><div id="source-preview" class="picker-preview"><span class="preview-placeholder">?</span></div><div class="picker-copy"><small>替换来源</small><span id="source-label-duplicate">从清单选择</span></div></div><span class="flow-arrow">→</span><div class="material-picker target-picker"><div id="target-preview" class="picker-preview"></div><div class="picker-copy"><small>替换为</small><input id="target-search" placeholder="搜索 26.2 方块…" autocomplete="off"><span id="target-label" class="target-current">石头 · minecraft:stone</span></div><div class="target-menu" id="target-menu"></div></div><button class="primary-button replace-cta" id="replace-button">执行替换</button></div><label class="advanced-control"><input type="checkbox" id="advanced-toggle"><span class="toggle-track"></span><span><strong>高级模式</strong><small>允许跨形状替换</small></span></label></div>
+      <div class="toolbar"><div class="material-meta"><strong id="material-count">0 种材料</strong><span>当前统计范围内</span></div><label class="search-box"><span>⌕</span><input id="material-search" placeholder="搜索材料名称或 ID" /></label></div>
+      <div class="materials-table"><div class="table-head"><span>方块</span><span>所需数量</span><span></span></div><div id="materials"></div></div>
+      <section class="preview-panel" aria-labelledby="preview-title">
+        <div class="preview-head"><div><div class="eyebrow">LIVE PROJECTION</div><h2 id="preview-title">当前投影预览</h2><p id="preview-status">预览全部层 · 0 个方块</p></div><button class="ghost-button preview-reset" id="preview-reset" type="button" title="重置预览视角">↺ 重置视角</button></div>
+        <div class="preview-canvas-wrap"><canvas id="preview-canvas" aria-label="litematic 当前投影预览"></canvas><div class="preview-empty" id="preview-empty" hidden>当前范围没有可显示的方块</div></div>
+        <div class="preview-help"><span>左键拖动：平移</span><span>右键拖动：旋转</span><span>滚轮：缩放</span></div>
+      </section>
+    </section>
+  </main>
+  <div class="modal-backdrop" id="advanced-modal" hidden><section class="warning-modal" role="dialog" aria-modal="true" aria-labelledby="advanced-title"><div class="warning-mark">!</div><h2 id="advanced-title">开启高级模式？</h2><p>不同形状的方块可能有不同的碰撞箱、占位范围和状态属性。跨形状替换后，朝向、连接方式或渲染效果可能需要在游戏内重新检查。</p><div class="modal-actions"><button class="text-button" id="advanced-cancel">取消</button><button class="primary-button" id="advanced-confirm">确认开启</button></div></section></div>
+  <div class="toast" id="toast"></div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

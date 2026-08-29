@@ -1,0 +1,22 @@
+import assert from 'node:assert/strict';
+import { fallbackColor, makeSample, previewKind, previewProjectPoint, unpackStates } from '../app.js';
+
+const base = previewProjectPoint({ x: 1, y: 2, z: 3 }, 10, 0, 0.68);
+const rotated = previewProjectPoint({ x: 1, y: 2, z: 3 }, 10, Math.PI / 2, 0.68);
+assert.deepEqual(Object.keys(base).sort(), ['depth', 'x', 'y']);
+assert.ok(Number.isFinite(base.x) && Number.isFinite(base.y) && Number.isFinite(base.depth));
+assert.notEqual(base.x, rotated.x, 'yaw must change horizontal projection');
+assert.notEqual(base.depth, rotated.depth, 'yaw must change depth ordering');
+assert.equal(previewKind('minecraft:stone_slab'), 'slab');
+assert.equal(previewKind('minecraft:oak_stairs'), 'stairs');
+assert.equal(previewKind('minecraft:redstone_wire'), 'redstone');
+assert.equal(previewKind('minecraft:rail'), 'rail');
+assert.equal(previewKind('minecraft:oak_trapdoor'), 'trapdoor');
+assert.equal(fallbackColor('minecraft:prismarine_bricks'), '#4ca6a4');
+assert.equal(fallbackColor('minecraft:prismarine_brick_slab'), '#4ca6a4');
+assert.notEqual(fallbackColor('minecraft:prismarine_bricks'), fallbackColor('minecraft:stone_bricks'));
+const sampleRegion = makeSample().value.Regions.value['示例区域'];
+const sampleDecoded = unpackStates(sampleRegion);
+const sampleKinds = new Set([...sampleDecoded.values].map(index => previewKind(sampleDecoded.palette[index].Name.value)));
+assert.ok(sampleKinds.has('redstone') && sampleKinds.has('stairs') && sampleKinds.has('plant') && sampleKinds.has('bed'));
+console.log('PREVIEW_PROJECTION PASS yaw=pitch-aware shapes=5');
