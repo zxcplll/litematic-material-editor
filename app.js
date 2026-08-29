@@ -1,36 +1,20 @@
 import { compound, getInt, getString, list, readLitematic, setInt, setLong, setString, tag, writeLitematic } from './nbt.js';
 import { BLOCKSTATE_IDS } from './blocks-26.2.js';
 import { BLOCK_NAMES_ZH } from './block-names-26.2.js';
+import { BLOCK_COLORS_26_2 } from './block-colors-26.2.js';
 
 const iconBase = 'https://assets.mcasset.cloud/1.21.5/assets/minecraft/textures/block/';
-const COLOR_NAMES = ['white', 'orange', 'magenta', 'light_blue', 'yellow', 'lime', 'pink', 'gray', 'light_gray', 'cyan', 'purple', 'blue', 'brown', 'green', 'red', 'black'];
-const COLOR_CN = { white: '白色', orange: '橙色', magenta: '品红色', light_blue: '淡蓝色', yellow: '黄色', lime: '黄绿色', pink: '粉红色', gray: '灰色', light_gray: '淡灰色', cyan: '青色', purple: '紫色', blue: '蓝色', brown: '棕色', green: '绿色', red: '红色', black: '黑色' };
-const WOODS = ['oak', 'spruce', 'birch', 'jungle', 'acacia', 'dark_oak', 'mangrove', 'cherry', 'bamboo', 'crimson', 'warped'];
-const WOOD_CN = { oak: '橡木', spruce: '云杉木', birch: '白桦木', jungle: '丛林木', acacia: '金合欢木', dark_oak: '深色橡木', mangrove: '红树木', cherry: '樱花木', bamboo: '竹', crimson: '绯红木', warped: '诡异木' };
-
 const COMMON_BLOCKS = [
   ['air', '空气'], ['stone', '石头'], ['granite', '花岗岩'], ['polished_granite', '磨制花岗岩'], ['diorite', '闪长岩'], ['polished_diorite', '磨制闪长岩'], ['andesite', '安山岩'], ['polished_andesite', '磨制安山岩'], ['deepslate', '深板岩'], ['cobbled_deepslate', '深板岩圆石'], ['polished_deepslate', '磨制深板岩'], ['tuff', '凝灰岩'], ['calcite', '方解石'], ['smooth_basalt', '平滑玄武岩'], ['bedrock', '基岩'], ['dirt', '泥土'], ['coarse_dirt', '砂土'], ['rooted_dirt', '缠根泥土'], ['grass_block', '草方块'], ['podzol', '灰化土'], ['mycelium', '菌丝体'], ['sand', '沙子'], ['red_sand', '红沙'], ['gravel', '沙砾'], ['clay', '黏土'], ['snow_block', '雪块'], ['ice', '冰'], ['packed_ice', '浮冰'], ['blue_ice', '蓝冰'], ['netherrack', '下界岩'], ['soul_sand', '灵魂沙'], ['soul_soil', '灵魂土'], ['basalt', '玄武岩'], ['blackstone', '黑石'], ['glowstone', '荧石'], ['obsidian', '黑曜石'], ['crying_obsidian', '哭泣的黑曜石'], ['end_stone', '末地石'], ['purpur_block', '紫珀块'], ['prismarine', '海晶石'], ['prismarine_bricks', '海晶石砖'], ['dark_prismarine', '暗海晶石'], ['sea_lantern', '海晶灯'], ['moss_block', '苔藓块'], ['moss_carpet', '苔藓地毯'], ['mud', '泥巴'], ['packed_mud', '泥坯'], ['mud_bricks', '泥砖'], ['terracotta', '陶瓦'], ['bricks', '砖块'], ['stone_bricks', '石砖'], ['mossy_stone_bricks', '苔石砖'], ['cracked_stone_bricks', '裂纹石砖'], ['chiseled_stone_bricks', '錾制石砖'], ['sandstone', '砂岩'], ['cut_sandstone', '切制砂岩'], ['smooth_sandstone', '平滑砂岩'], ['red_sandstone', '红砂岩'], ['cut_red_sandstone', '切制红砂岩'], ['smooth_red_sandstone', '平滑红砂岩'], ['quartz_block', '石英块'], ['smooth_quartz', '平滑石英块'], ['quartz_bricks', '石英砖'], ['iron_block', '铁块'], ['gold_block', '金块'], ['diamond_block', '钻石块'], ['emerald_block', '绿宝石块'], ['coal_block', '煤炭块'], ['lapis_block', '青金石块'], ['redstone_block', '红石块'], ['copper_block', '铜块'], ['raw_iron_block', '粗铁块'], ['raw_gold_block', '粗金块'], ['raw_copper_block', '粗铜块'], ['amethyst_block', '紫水晶块'], ['budding_amethyst', '紫水晶母岩'], ['hay_block', '干草块'], ['sponge', '海绵'], ['wet_sponge', '湿海绵'], ['honey_block', '蜂蜜块'], ['slime_block', '黏液块'], ['tnt', 'TNT'], ['crafting_table', '工作台'], ['furnace', '熔炉'], ['blast_furnace', '高炉'], ['smoker', '烟熏炉'], ['stonecutter', '切石机'], ['anvil', '铁砧'], ['chest', '箱子'], ['barrel', '木桶'], ['hopper', '漏斗'], ['dropper', '投掷器'], ['dispenser', '发射器'], ['observer', '侦测器'], ['piston', '活塞'], ['sticky_piston', '黏性活塞'], ['redstone_lamp', '红石灯'], ['lever', '拉杆'], ['torch', '火把'], ['soul_torch', '灵魂火把'], ['lantern', '灯笼'], ['soul_lantern', '灵魂灯笼'], ['ladder', '梯子'], ['scaffolding', '脚手架'], ['glass', '玻璃'], ['glass_pane', '玻璃板'], ['iron_bars', '铁栏杆'], ['rail', '铁轨'], ['powered_rail', '动力铁轨'], ['detector_rail', '探测铁轨'], ['activator_rail', '激活铁轨'], ['water', '水'], ['lava', '熔岩'], ['fire', '火'], ['soul_fire', '灵魂火'], ['oak_leaves', '橡树树叶'], ['azalea_leaves', '杜鹃树叶'], ['flowering_azalea_leaves', '盛开的杜鹃树叶'], ['cactus', '仙人掌'], ['sugar_cane', '甘蔗'], ['bamboo', '竹子'], ['kelp', '海带'], ['seagrass', '海草'], ['short_grass', '短草'], ['fern', '蕨'], ['dandelion', '蒲公英'], ['poppy', '虞美人'], ['torchflower', '火把花'], ['brown_mushroom', '棕色蘑菇'], ['red_mushroom', '红色蘑菇'], ['shulker_box', '潜影盒'], ['ender_chest', '末影箱'], ['beacon', '信标'], ['conduit', '潮涌核心'], ['sculk', '幽匿块'], ['sculk_catalyst', '幽匿催发体'], ['sculk_sensor', '幽匿感测体'], ['reinforced_deepslate', '强化深板岩'], ['trial_spawner', '试炼刷怪笼'], ['vault', '宝库']
 ];
 
 function buildCatalog() {
-  const map = new Map(COMMON_BLOCKS.map(([id, name]) => [id, name]));
-  for (const wood of WOODS) {
-    const n = WOOD_CN[wood];
-    for (const [suffix, cn] of [['planks', '木板'], ['log', '原木'], ['wood', '木'], ['stripped_log', '去皮原木'], ['stripped_wood', '去皮木'], ['leaves', '树叶'], ['slab', '台阶'], ['stairs', '楼梯'], ['fence', '栅栏'], ['fence_gate', '栅栏门'], ['door', '门'], ['trapdoor', '活板门'], ['button', '按钮'], ['pressure_plate', '压力板'], ['sign', '告示牌'], ['hanging_sign', '悬挂式告示牌']]) map.set(`${wood}_${suffix}`, `${n}${cn}`);
-  }
-  for (const color of COLOR_NAMES) {
-    const n = COLOR_CN[color];
-    for (const [suffix, cn] of [['wool', '羊毛'], ['carpet', '地毯'], ['concrete', '混凝土'], ['concrete_powder', '混凝土粉末'], ['terracotta', '陶瓦'], ['stained_glass', '染色玻璃'], ['stained_glass_pane', '染色玻璃板'], ['candle', '蜡烛'], ['shulker_box', '潜影盒']]) map.set(`${color}_${suffix}`, `${n}${cn}`);
-  }
-  for (const ore of ['coal', 'iron', 'copper', 'gold', 'redstone', 'lapis', 'diamond', 'emerald']) {
-    const n = { coal: '煤矿石', iron: '铁矿石', copper: '铜矿石', gold: '金矿石', redstone: '红石矿石', lapis: '青金石矿石', diamond: '钻石矿石', emerald: '绿宝石矿石' }[ore];
-    map.set(`${ore}_ore`, n); map.set(`deepslate_${ore}_ore`, `深层${n}`);
-  }
+  const commonNames = new Map(COMMON_BLOCKS);
+  const map = new Map();
   for (const id of BLOCKSTATE_IDS) {
     const bare = id.replace(/^minecraft:/, '');
-    if (!map.has(bare)) map.set(bare, bare.split('_').map(part => part[0]?.toUpperCase() + part.slice(1)).join(' '));
+    map.set(bare, BLOCK_NAMES_ZH[bare] || commonNames.get(bare) || bare.split('_').map(part => part[0]?.toUpperCase() + part.slice(1)).join(' '));
   }
-  for (const [id, name] of Object.entries(BLOCK_NAMES_ZH)) map.set(id, name);
   return [...map].map(([id, name]) => ({ id: `minecraft:${id}`, name })).filter(item => !isAirId(item.id));
 }
 const SHAPE_NAMES = { full: '普通方块', slab: '半砖', stairs: '台阶', trapdoor: '活板门', door: '门', fence: '栅栏', wall: '墙', pane: '玻璃板', button: '按钮', pressure_plate: '压力板', sign: '告示牌', carpet: '地毯', rail: '铁轨', plant: '植物', fluid: '流体', other: '特殊方块' };
@@ -77,6 +61,15 @@ function iconCandidates(id) {
 }
 function fallbackColor(id) {
   const bare = id.replace(/^minecraft:/, '');
+  const tintOverrides = {
+    grass_block: '#91bd59', short_grass: '#91bd59', tall_grass: '#91bd59', fern: '#91bd59', large_fern: '#91bd59', bush: '#91bd59', potted_fern: '#91bd59',
+    oak_leaves: '#77ab2f', jungle_leaves: '#77ab2f', acacia_leaves: '#77ab2f', dark_oak_leaves: '#77ab2f', mangrove_leaves: '#77ab2f', vine: '#77ab2f',
+    birch_leaves: '#80a755', spruce_leaves: '#619961', leaf_litter: '#a37546',
+    water: '#3f76e4', bubble_column: '#3f76e4', water_cauldron: '#3f76e4', lily_pad: '#208030', redstone_wire: '#c62820',
+    sea_lantern: '#acc8be', glowstone: '#ac8354', sugar_cane: '#91bd59', attached_melon_stem: '#e0c71c', attached_pumpkin_stem: '#e0c71c'
+  };
+  if (tintOverrides[bare]) return tintOverrides[bare];
+  if (BLOCK_COLORS_26_2[id]) return BLOCK_COLORS_26_2[id];
   const colorFamilies = { white: '#e9edf0', orange: '#d9814b', magenta: '#a94e9c', light_blue: '#6aaed0', yellow: '#d8bd4d', lime: '#88b83f', pink: '#d883a3', gray: '#646b70', light_gray: '#a8afb0', cyan: '#3eaaa6', purple: '#8552a5', blue: '#4b70bb', brown: '#80563e', green: '#5c9a4b', red: '#b84c45', black: '#25272c' };
   const colorFamily = Object.entries(colorFamilies).find(([name]) => bare.startsWith(`${name}_`));
   if (colorFamily) return colorFamily[1];
@@ -160,6 +153,18 @@ function ensurePaletteEntry(region, id, sourceProperties = null) {
   palette.push(entry);
   return palette.length - 1;
 }
+function replaceRegionBlocks(region, sourceId, targetId, scopeLayer = null, preserveProperties = true) {
+  const data = unpackStates(region); let changed = 0;
+  data.values.forEach((paletteIndex, index) => {
+    const layer = Math.floor(index / (data.dimensions.x * data.dimensions.z));
+    if (blockId(data.palette[paletteIndex]) !== sourceId || (scopeLayer !== null && layer !== scopeLayer)) return;
+    const properties = preserveProperties && !isAirId(targetId) ? data.palette[paletteIndex]?.Properties : null;
+    data.values[index] = ensurePaletteEntry(region, targetId, properties);
+    changed += 1;
+  });
+  if (changed) region.value.BlockStates = packStates(data.values, bitsForPalette(region.value.BlockStatePalette.value.items.length));
+  return changed;
+}
 function countRegion(region) {
   const decoded = unpackStates(region); const all = new Map(); const layers = new Map();
   decoded.values.forEach((paletteIndex, index) => {
@@ -187,7 +192,7 @@ function makeSample() {
   return compound({ MinecraftDataVersion: tag(3, 3953), Version: tag(3, 6), SubVersion: tag(3, 0), Metadata: metadata, Regions: compound({ '示例区域': region }) });
 }
 
-const state = { root: null, fileName: '示例建筑.litematic', projectName: '示例建筑', scope: 'all', rows: [], sourceId: '', targetId: 'minecraft:stone', filter: '', filterTarget: '', advanced: false };
+const state = { root: null, fileName: '示例建筑.litematic', projectName: '示例建筑', scope: 'all', rows: [], sourceId: '', targetId: 'minecraft:stone', pendingDeleteId: '', filter: '', filterTarget: '', advanced: false };
 const $ = (id) => document.getElementById(id);
 const fmt = (value) => new Intl.NumberFormat('zh-CN').format(value);
 function fileSize(bytes) { return bytes < 1024 ? `${bytes} B` : `${(bytes / 1024).toFixed(1)} KB`; }
@@ -317,7 +322,7 @@ function drawPreviewShape(ctx, block, tile, toScreen) {
   if (kind === 'pane') { drawPreviewCuboid(ctx, block, tile, toScreen, { x0: .43, x1: .57, z0: 0, z1: 1, y0: 0, y1: 1 }, color, .7); drawPreviewCuboid(ctx, block, tile, toScreen, { x0: 0, x1: 1, z0: .43, z1: .57, y0: 0, y1: 1 }, color, .7); return; }
   if (kind === 'button') { const panel = facing === 'east' ? { x0: .82, x1: 1 } : facing === 'west' ? { x0: 0, x1: .18 } : facing === 'north' ? { z0: 0, z1: .18 } : { z0: .82, z1: 1 }; drawPreviewCuboid(ctx, block, tile, toScreen, { ...panel, y0: .38, y1: .62 }, color); return; }
   if (kind === 'redstone') {
-    const red = '#d8564e'; drawPreviewCuboid(ctx, block, tile, toScreen, { x0: .35, x1: .65, z0: .35, z1: .65, y0: .01, y1: .045 }, red);
+    const power = clamp(Number(previewProperty(block, 'power', '0')) || 0, 0, 15); const red = `rgb(${Math.round(82 + power * 11.5)}, ${Math.round(8 + power * 1.8)}, ${Math.round(5 + power * .5)})`; drawPreviewCuboid(ctx, block, tile, toScreen, { x0: .35, x1: .65, z0: .35, z1: .65, y0: .01, y1: .045 }, red);
     const arms = [['north', 0, .5, .5, .12], ['south', 0, .5, .5, .88], ['west', .12, .5, 0, .5], ['east', .88, .5, 0, .5]]; for (const [name, x0, y, z0, end] of arms) { const value = previewProperty(block, name, 'side'); if (value !== 'none') { const start = previewPoint(block, tile, toScreen, .5, .05, .5); const finish = name === 'north' || name === 'south' ? previewPoint(block, tile, toScreen, .5, .05, end) : previewPoint(block, tile, toScreen, end, .05, .5); drawPreviewLine(ctx, [start, finish], red, Math.max(1.4, tile * .055)); } } return;
   }
   if (kind === 'rail') {
@@ -364,7 +369,7 @@ function render() {
   const layerOptions = ['<option value="all">全部层</option>']; for (let i = 0; i <= stats.maxLayer; i += 1) layerOptions.push(`<option value="${i}">第 ${i + 1} 层</option>`); $('layer-select').innerHTML = layerOptions.join(''); $('layer-select').value = state.scope;
   const query = state.filter.trim().toLowerCase(); const rows = stats.rows.filter(row => !query || row.id.toLowerCase().includes(query) || blockName(row.id).toLowerCase().includes(query));
   $('material-count').textContent = `${rows.length} 种材料`;
-  $('materials').innerHTML = rows.length ? rows.map(row => `<div class="material-row" data-id="${row.id}"><div class="material-main">${renderIcon(row.id, 38)}<div><strong>${blockName(row.id)}</strong><span>${row.id}</span></div></div><div class="material-amount">${fmt(row.count)} <small>个</small></div><button class="ghost-button row-replace" data-id="${row.id}" title="将此材料设为替换来源">替换</button></div>`).join('') : `<div class="empty-state">${state.root ? '没有匹配的建材' : '打开 .litematic 后显示建材清单'}</div>`;
+  $('materials').innerHTML = rows.length ? rows.map(row => `<div class="material-row" data-id="${row.id}"><div class="material-main">${renderIcon(row.id, 38)}<div><strong>${blockName(row.id)}</strong><span>${row.id}</span></div></div><div class="material-amount">${fmt(row.count)} <small>个</small></div><div class="material-actions"><button type="button" class="ghost-button row-replace" data-id="${row.id}" title="将此材料设为替换来源">替换</button><button type="button" class="delete-button row-delete" data-id="${row.id}" title="用空气替换此材料">删除</button></div></div>`).join('') : `<div class="empty-state">${state.root ? '没有匹配的建材' : '打开 .litematic 后显示建材清单'}</div>`;
   const layers = [...stats.layers.keys()].sort((a, b) => a - b); $('layer-summary').innerHTML = layers.map(layer => { const count = [...stats.layers.get(layer).values()].reduce((sum, n) => sum + n, 0); return `<button class="layer-chip ${String(state.scope) === String(layer) ? 'active' : ''}" data-layer="${layer}"><span>Y${layer + 1}</span><strong>${fmt(count)}</strong></button>`; }).join('');
   $('source-label').textContent = state.sourceId ? `${blockName(state.sourceId)} · ${state.sourceId}` : '选择表格中的材料';
   $('source-label-duplicate').textContent = state.sourceId ? blockName(state.sourceId) : '从清单选择';
@@ -374,19 +379,29 @@ function render() {
 }
 
 function setSource(id) { state.sourceId = id; if (!state.advanced && blockShape(state.targetId) !== blockShape(id)) { const preferred = SHAPE_DEFAULTS[blockShape(id)]; const compatible = CATALOG.find(item => item.id === preferred && blockShape(item.id) === blockShape(id)) || CATALOG.find(item => blockShape(item.id) === blockShape(id)); if (compatible) state.targetId = compatible.id; } render(); }
+function replaceProjectBlocks(sourceId, targetId, preserveProperties = true) {
+  const scopeLayer = state.scope === 'all' ? null : Number(state.scope);
+  return allRegions().reduce((total, region) => total + replaceRegionBlocks(region, sourceId, targetId, scopeLayer, preserveProperties), 0);
+}
 function replaceMaterial() {
   if (!state.sourceId || !state.targetId || state.sourceId === state.targetId) return;
   if (!state.advanced && blockShape(state.sourceId) !== blockShape(state.targetId)) { toast(`默认模式仅允许${shapeLabel(state.sourceId)}替换${shapeLabel(state.sourceId)}`); return; }
-  const scopeLayer = state.scope === 'all' ? null : Number(state.scope);
-  for (const region of allRegions()) {
-    const data = unpackStates(region); let changed = false;
-    data.values.forEach((paletteIndex, index) => {
-      const currentId = blockId(data.palette[paletteIndex]); const layer = Math.floor(index / (data.dimensions.x * data.dimensions.z));
-      if (currentId === state.sourceId && (scopeLayer === null || layer === scopeLayer)) { const targetIndex = ensurePaletteEntry(region, state.targetId, data.palette[paletteIndex]?.Properties); data.values[index] = targetIndex; changed = true; }
-    });
-    if (changed) region.value.BlockStates = packStates(data.values, bitsForPalette(region.value.BlockStatePalette.value.items.length));
-  }
+  replaceProjectBlocks(state.sourceId, state.targetId);
   state.sourceId = ''; render(); toast('已完成统一替换');
+}
+function openDeleteModal(id) {
+  state.pendingDeleteId = id;
+  const scope = state.scope === 'all' ? '全部层' : `第 ${Number(state.scope) + 1} 层`;
+  $('delete-message').textContent = `是否确认用空气替换“${blockName(id)}”？此操作仅应用于${scope}。`;
+  $('delete-modal').hidden = false;
+  $('delete-confirm').focus();
+}
+function closeDeleteModal() { state.pendingDeleteId = ''; $('delete-modal').hidden = true; }
+function deleteMaterial() {
+  if (!state.pendingDeleteId) return;
+  const deletedId = state.pendingDeleteId; const changed = replaceProjectBlocks(deletedId, 'minecraft:air', false);
+  if (state.sourceId === deletedId) state.sourceId = '';
+  closeDeleteModal(); render(); toast(`已用空气替换 ${fmt(changed)} 个${blockName(deletedId)}`);
 }
 
 function renderTargetMenu() {
@@ -413,12 +428,13 @@ if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded
   if (globalThis.desktopBridge?.onOpenFile) globalThis.desktopBridge.onOpenFile((payload) => importBuffer(payload.data, payload.name));
   $('import-button').addEventListener('click', () => $('file-input').click()); $('export-button').addEventListener('click', exportFile); $('load-demo').addEventListener('click', () => { state.root = makeSample(); state.fileName = '示例建筑.litematic'; state.projectName = '示例建筑'; resetPreviewView(); render(); toast('已恢复示例蓝图'); });
   $('layer-select').addEventListener('change', (event) => { state.scope = event.target.value; render(); }); $('material-search').addEventListener('input', (event) => { state.filter = event.target.value; render(); });
-  $('materials').addEventListener('click', (event) => { const button = event.target.closest('.row-replace'); if (button) setSource(button.dataset.id); }); $('layer-summary').addEventListener('click', (event) => { const button = event.target.closest('[data-layer]'); if (button) { state.scope = button.dataset.layer; render(); } });
+  $('materials').addEventListener('click', (event) => { const replaceButton = event.target.closest('.row-replace'); const deleteButton = event.target.closest('.row-delete'); if (replaceButton) setSource(replaceButton.dataset.id); if (deleteButton) openDeleteModal(deleteButton.dataset.id); }); $('layer-summary').addEventListener('click', (event) => { const button = event.target.closest('[data-layer]'); if (button) { state.scope = button.dataset.layer; render(); } });
   $('replace-button').addEventListener('click', replaceMaterial); $('target-search').addEventListener('input', (event) => { state.filterTarget = event.target.value; $('target-menu').classList.add('open'); renderTargetMenu(); }); $('target-menu').addEventListener('click', (event) => { const option = event.target.closest('.target-option'); if (!option) return; state.targetId = option.dataset.id; $('target-menu').classList.remove('open'); render(); }); document.addEventListener('click', (event) => { if (!event.target.closest('.target-picker')) $('target-menu').classList.remove('open'); });
   const advancedToggle = $('advanced-toggle'); const advancedModal = $('advanced-modal'); advancedToggle.addEventListener('change', () => { if (advancedToggle.checked) { advancedToggle.checked = false; advancedModal.hidden = false; } else { state.advanced = false; render(); } }); $('advanced-cancel').addEventListener('click', () => { advancedModal.hidden = true; advancedToggle.checked = state.advanced; }); $('advanced-confirm').addEventListener('click', () => { state.advanced = true; advancedToggle.checked = true; advancedModal.hidden = true; state.filterTarget = ''; render(); toast('高级模式已开启'); });
+  $('delete-cancel').addEventListener('click', closeDeleteModal); $('delete-confirm').addEventListener('click', deleteMaterial); $('delete-modal').addEventListener('click', (event) => { if (event.target.id === 'delete-modal') closeDeleteModal(); }); document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !$('delete-modal').hidden) closeDeleteModal(); });
   const dropzone = $('dropzone'); ['dragenter', 'dragover'].forEach(type => dropzone.addEventListener(type, (event) => { event.preventDefault(); dropzone.classList.add('dragging'); })); ['dragleave', 'drop'].forEach(type => dropzone.addEventListener(type, (event) => { event.preventDefault(); dropzone.classList.remove('dragging'); })); dropzone.addEventListener('drop', (event) => event.dataTransfer.files[0] && importFile(event.dataTransfer.files[0]));
   $('target-search').addEventListener('focus', () => { $('target-menu').classList.add('open'); renderTargetMenu(); });
   const previewCanvas = $('preview-canvas'); previewCanvas.addEventListener('contextmenu', (event) => event.preventDefault()); previewCanvas.addEventListener('pointerdown', (event) => { event.preventDefault(); previewCanvas.setPointerCapture(event.pointerId); previewState.drag = { mode: event.button === 2 ? 'rotate' : 'pan', x: event.clientX, y: event.clientY }; previewCanvas.classList.add('dragging'); }); previewCanvas.addEventListener('pointermove', (event) => { if (!previewState.drag) return; const dx = event.clientX - previewState.drag.x; const dy = event.clientY - previewState.drag.y; previewState.drag.x = event.clientX; previewState.drag.y = event.clientY; if (previewState.drag.mode === 'rotate') { previewState.yaw += dx * 0.012; previewState.pitch = clamp(previewState.pitch + dy * 0.008, 0.25, 1.25); } else { previewState.panX += dx; previewState.panY += dy; } renderPreview(); }); const endPreviewDrag = (event) => { if (previewState.drag) { previewState.drag = null; previewCanvas.classList.remove('dragging'); if (previewCanvas.hasPointerCapture(event.pointerId)) previewCanvas.releasePointerCapture(event.pointerId); } }; previewCanvas.addEventListener('pointerup', endPreviewDrag); previewCanvas.addEventListener('pointercancel', endPreviewDrag); previewCanvas.addEventListener('wheel', (event) => { event.preventDefault(); previewState.zoom = clamp(previewState.zoom * Math.exp(-event.deltaY * 0.001), 0.35, 4); renderPreview(); }, { passive: false }); $('preview-reset').addEventListener('click', resetPreviewView); window.addEventListener('resize', renderPreview); render();
 });
 
-export { blockShape, buildCatalog, collectPreviewBlocks, countRegion, ensurePaletteEntry, fallbackColor, iconCandidates, makeSample, packStates, previewKind, previewProjectPoint, unpackStates };
+export { blockShape, buildCatalog, collectPreviewBlocks, countRegion, ensurePaletteEntry, fallbackColor, iconCandidates, makeSample, packStates, previewKind, previewProjectPoint, replaceRegionBlocks, unpackStates };

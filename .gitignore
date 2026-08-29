@@ -2,6 +2,6 @@ node_modules/
 dist/
 发布包/*.exe
 发布包/*.blockmap
-发布包/Litematic-Editor-1.0.0-README.txt
+发布包/Litematic-Editor-*-README.txt
 work/
 *.log
